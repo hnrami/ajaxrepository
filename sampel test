@@ -1,11 +1,34 @@
-const data = [
-    { x: 'tes', y: 'hello world ', z: 'abc' },
-    { x: 'tes', y: 'world ', z: 'hello ' },
-    { x: 'hello ', y: null, z: 'abc' }, // Example with a null value
-];
+const inputJSON = {
+    "data": [
+        {
+            "field": "test",
+            "oprator": "IOC",
+            "coutry": "Well-India",
+            "legalname": "test  IOC",
+            "numpoint": "Well test",
+            "numpermit": "test well record"
+        },
+        {
+            "field": "test",
+            "oprator": "XYZ",
+            "coutry": "Well-PAK",
+            "legalname": "test  IOO",
+            "numpoint": "Well test",
+            "numpermit": "test well record"
+        },
+        {
+            "field": "test",
+            "oprator": "REEEW",
+            "coutry": "Well-SL",
+            "legalname": "test  wewe",
+            "numpoint": "Well erere",
+            "numpermit": "test well record"
+        }
+    ]
+};
 
-function findFieldContainingValue(inputJSON, searchValue) {
- const outputJSON = {
+function filterJSON(inputJSON, searchValue) {
+    const outputJSON = {
         "data": []
     };
 
@@ -29,12 +52,6 @@ function findFieldContainingValue(inputJSON, searchValue) {
     return outputJSON;
 }
 
-const searchValue = 'hello';
-const matchedRecords = findFieldContainingValue(data, searchValue);
-
-if (matchedRecords.length > 0) {
-    console.log(matchedRecords);
-} else {
-    console.log('No match found');
-}
-
+const searchValue = 'test';
+const outputJSON = filterJSON(inputJSON, searchValue);
+console.log(outputJSON);
