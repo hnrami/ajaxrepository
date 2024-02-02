@@ -1,0 +1,28 @@
+const data = [
+    { x: 'tes', y: 'hello world ', z: 'abc' },
+    { x: 'tes', y: 'world ', z: 'hello ' },
+    { x: 'hello ', y: 'world ', z: 'abc' },
+];
+
+function findFieldContainingValue(data, searchValue) {
+    const matchedObjects = [];
+
+    data.forEach(item => {
+        for (const key in item) {
+            if (item.hasOwnProperty(key) && item[key].includes(searchValue)) {
+                matchedObjects.push({ field: key, value: item[key] });
+            }
+        }
+    });
+
+    return matchedObjects;
+}
+
+const searchValue = 'hello';
+const matchedFields = findFieldContainingValue(data, searchValue);
+
+if (matchedFields.length > 0) {
+    console.log('Matched fields:', matchedFields);
+} else {
+    console.log('No match found');
+}
