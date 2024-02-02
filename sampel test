@@ -5,28 +5,32 @@ const data = [
 ];
 
 function findFieldContainingValue(data, searchValue) {
-    const matchedFields = [];
+    const matchedRecords = [];
 
     const lowerCaseSearchValue = searchValue.toLowerCase();
 
-  data.forEach(item => {
+    data.forEach(item => {
+        let matchedKeys = [];
+
         for (const key in item) {
             if (item.hasOwnProperty(key) && item[key] !== null && item[key].toLowerCase().includes(lowerCaseSearchValue)) {
-                if (!matchedFields.hasOwnProperty(key)) {
-                    matchedFields[key] = [];
-                }
-                matchedFields[key].push(item[key].trim());
+                matchedKeys.push({ [key]: item[key].trim() });
             }
         }
+
+            matchedRecords.push(matchedKeys);
+        
     });
-    return matchedFields;
+
+    return matchedRecords;
 }
 
-const searchValue = 'Hello';
-const matchedFields = findFieldContainingValue(data, searchValue);
+const searchValue = 'hello';
+const matchedRecords = findFieldContainingValue(data, searchValue);
 
-if (matchedFields.length > 0) {
-    console.log(matchedFields);
+if (matchedRecords.length > 0) {
+    console.log(matchedRecords);
 } else {
     console.log('No match found');
 }
+
