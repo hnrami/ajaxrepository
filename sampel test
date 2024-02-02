@@ -4,25 +4,29 @@ const data = [
     { x: 'hello ', y: null, z: 'abc' }, // Example with a null value
 ];
 
-function findFieldContainingValue(data, searchValue) {
-    const matchedRecords = [];
+function findFieldContainingValue(inputJSON, searchValue) {
+ const outputJSON = {
+        "data": []
+    };
 
     const lowerCaseSearchValue = searchValue.toLowerCase();
 
-    data.forEach(item => {
-        let matchedKeys = [];
-
-        for (const key in item) {
-            if (item.hasOwnProperty(key) && item[key] !== null && item[key].toLowerCase().includes(lowerCaseSearchValue)) {
-                matchedKeys.push({ [key]: item[key].trim() });
+    inputJSON.data.forEach(record => {
+        for (const key in record) {
+            if (record.hasOwnProperty(key) && record[key] !== null && record[key].toLowerCase().includes(lowerCaseSearchValue)) {
+                const filteredRecord = {};
+                for (const innerKey in record) {
+                    if (record.hasOwnProperty(innerKey) && innerKey !== 'field' && innerKey !== 'oprator' && record[innerKey] !== null) {
+                        filteredRecord[innerKey] = record[innerKey];
+                    }
+                }
+                outputJSON.data.push(filteredRecord);
+                break; // Stop checking other keys once a match is found
             }
         }
-
-            matchedRecords.push(matchedKeys);
-        
     });
 
-    return matchedRecords;
+    return outputJSON;
 }
 
 const searchValue = 'hello';
