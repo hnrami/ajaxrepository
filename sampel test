@@ -9,14 +9,16 @@ function findFieldContainingValue(data, searchValue) {
 
     const lowerCaseSearchValue = searchValue.toLowerCase();
 
-    data.forEach(item => {
+  data.forEach(item => {
         for (const key in item) {
             if (item.hasOwnProperty(key) && item[key] !== null && item[key].toLowerCase().includes(lowerCaseSearchValue)) {
-                matchedFields.push({ [key]: item[key].trim() });
+                if (!matchedFields.hasOwnProperty(key)) {
+                    matchedFields[key] = [];
+                }
+                matchedFields[key].push(item[key].trim());
             }
         }
     });
-
     return matchedFields;
 }
 
