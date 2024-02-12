@@ -1,0 +1,67 @@
+class MyClass {
+    async mainAsyncMethod() {
+        try {
+            // Call three asynchronous methods
+            const result1 = await this.asyncMethod1();
+            const result2 = await this.asyncMethod2();
+            const result3 = await this.asyncMethod3();
+
+            // Combine the results
+            const combinedResult = this.combineResults(result1, result2, result3);
+
+            // Return or do something with the combined result
+            return combinedResult;
+        } catch (error) {
+            // Handle errors
+            console.error('Error in mainAsyncMethod:', error);
+            throw error;
+        }
+    }
+
+    async asyncMethod1() {
+        // Asynchronous operation 1
+        return new Promise((resolve, reject) => {
+            // Simulate asynchronous operation
+            setTimeout(() => {
+                resolve('Result from asyncMethod1');
+            }, 1000);
+        });
+    }
+
+    async asyncMethod2() {
+        // Asynchronous operation 2
+        return new Promise((resolve, reject) => {
+            // Simulate asynchronous operation
+            setTimeout(() => {
+                resolve('Result from asyncMethod2');
+            }, 1500);
+        });
+    }
+
+    async asyncMethod3() {
+        // Asynchronous operation 3
+        return new Promise((resolve, reject) => {
+            // Simulate asynchronous operation
+            setTimeout(() => {
+                resolve('Result from asyncMethod3');
+            }, 2000);
+        });
+    }
+
+    combineResults(result1, result2, result3) {
+        // Combine the results however you need
+        return [result1, result2, result3];
+    }
+}
+
+// Create an instance of MyClass
+const myObject = new MyClass();
+
+// Call the main async method and handle the result
+myObject.mainAsyncMethod()
+    .then(combinedResult => {
+        console.log('Combined Result:', combinedResult);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
