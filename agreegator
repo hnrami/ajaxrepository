@@ -67,19 +67,13 @@ myObject.mainAsyncMethod()
     });
 
 /*
-{
-  "size": 0, // Set size to 0 to retrieve only aggregations
-  "aggs": {
-    "distinct_geopolitical": {
-      "terms": {
-        "field": "recordgeopolitical.keyword",
-        "size": 100 // Optional: Adjust the size for the desired number of buckets
-      },
-      "aggs": {
-        "doc_count": {
-          "cardinality": { "field": "_id" } // Count unique document IDs
+
+ "aggs": {
+        "distinct_geopolitical": {
+            "terms": {
+                "field": "recordgeopolitical.keyword",
+                "size": 10
+            }
         }
-      }
-    }
-  }
-} */
+    },
+*/
