@@ -15,22 +15,29 @@ const outputJSON = {
 const fieldNames = Object.keys(inputJSON.fieldwithcountry[0]);
 const fieldMap = {};
 fieldNames.forEach((fieldName) => {
-  fieldMap[fieldName.toLowerCase()] = fieldName; // Convert to lowercase for consistency
+  fieldMap[fieldName.toLowerCase()] = fieldName;
 });
 
-// Ensure recordgeopolicitical exists and has the same length as other arrays
-if (
-  !inputJSON.fieldwithcountry.some(
-    (obj) => obj.recordgeopolicitical && obj.recordgeopolicitical.length === 3
-  )
-) {
-  throw new Error("Missing or invalid 'recordgeopolicitical' array");
+// Find the index of the object containing the 'recordgeopolicitical' key
+const recordGeopoliticalIndex = inputJSON.fieldwithcountry.findIndex(
+  (obj) => "recordgeopolicitical" in obj
+);
+
+if (recordGeopoliticalIndex === -1) {
+  throw new Error("Missing 'recordgeopolicitical' array in input JSON");
+}
+
+// Ensure 'recordgeopolicitical' array exists and has the same length as other arrays
+if (!inputJSON.fieldwithcountry[recordGeopoliticalIndex].recordgeopolicitical) {
+  throw new Error("Invalid 'recordgeopolicitical' array");
 }
 
 inputJSON.fieldwithcountry.forEach((obj, index) => {
   const fieldKey = fieldMap[Object.keys(obj)[0].toLowerCase()];
   const fieldValues = obj[fieldKey];
-  const recordgeopoliciticalValues = inputJSON.fieldwithcountry[3].recordgeopolicitical;
+  const recordgeopoliciticalValues = inputJSON.fieldwithcountry[
+    recordGeopoliticalIndex
+  ].recordgeopolicitical;
 
   const transformedValues = fieldValues.map((fieldValue, i) => {
     return `{"${fieldKey}=${fieldValue},recordgeopolicitical=${recordgeopoliciticalValues[i]}"}`;
