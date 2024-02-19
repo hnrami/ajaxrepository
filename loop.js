@@ -11,11 +11,12 @@ const outputJSON = {
   fieldwithcountry: [],
 };
 
-const mapFields = {
-  field: "field",
-  City: "city",
-  operator: "operator",
-};
+// Dynamically determine field names and map them
+const fieldNames = Object.keys(inputJSON.fieldwithcountry[0]);
+const fieldMap = {};
+fieldNames.forEach((fieldName) => {
+  fieldMap[fieldName.toLowerCase()] = fieldName; // Convert to lowercase for consistency
+});
 
 // Ensure recordgeopolicitical exists and has the same length as other arrays
 if (
@@ -27,7 +28,7 @@ if (
 }
 
 inputJSON.fieldwithcountry.forEach((obj, index) => {
-  const fieldKey = mapFields[Object.keys(obj)[0]];
+  const fieldKey = fieldMap[Object.keys(obj)[0].toLowerCase()];
   const fieldValues = obj[fieldKey];
   const recordgeopoliciticalValues = inputJSON.fieldwithcountry[3].recordgeopolicitical;
 
