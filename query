@@ -1,0 +1,53 @@
+{
+  "from": 0,
+  "size": 0, // Set size to 0 to exclude search results, as we're only interested in aggregations
+  "query": {
+    "bool": {
+      "must": [
+        {
+          "bool": {
+            "must": [
+              {
+                "multi_match": {
+                  "query": "Shell",
+                  "fields": ["recordcustomer^1.0", "recordgeopolitical^1.0", "recordgeosubdivision^1.0"],
+                  "type": "best_fields",
+                  "fuzziness": "AUTO",
+                  "operator": "OR",
+                  "slop": 0,
+                  "prefix length": 0,
+                  "max expansions": 50,
+                  "zero_terms_query": "NONE",
+                  "auto_generate_synonyms_phrase_query": true,
+                  "fuzzy_transpositions": true,
+                  "boost": 1
+                }
+              }
+            ],
+            "adjust_pure_negative": true,
+            "boost": 1
+          }
+        }
+      ]
+    }
+  },
+  "aggs": {
+    "distinct_geopolitical": {
+      "terms": {
+        "field": "recordgeopolitical.keyword",
+        "size": 10
+      }
+    }
+  },
+  "source": {
+    "includes": ["recordcustomer", "recordgeosubdivision", "recordgeopolitical"],
+    "excludes": []
+  },
+  "sort": [
+    {
+      "_score": {
+        "order": "desc"
+      }
+    }
+  ]
+}
