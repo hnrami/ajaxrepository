@@ -18,21 +18,21 @@ const query = {
 const QueryModifier = {
     replaceKey: function(obj, oldKey, newKey) {
         if (typeof obj !== 'object') {
-            return;
+            return obj;
         }
 
+        let newObj = {};
         for (let key in obj) {
             if (key === oldKey) {
-                obj[newKey] = obj[oldKey];
-                delete obj[oldKey];
-            }
-            if (typeof obj[key] === 'object') {
-                this.replaceKey(obj[key], oldKey, newKey);
+                newObj[newKey] = this.replaceKey(obj[oldKey], oldKey, newKey);
+            } else {
+                newObj[key] = this.replaceKey(obj[key], oldKey, newKey);
             }
         }
+        return newObj;
     }
 };
 
 // Usage:
-QueryModifier.replaceKey(query, 'filename', 'city');
-console.log(query);
+let modifiedQuery = QueryModifier.replaceKey(query, 'filename', 'city');
+console.log(modifiedQuery);
