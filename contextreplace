@@ -36,3 +36,23 @@ const QueryModifier = {
 // Usage:
 let modifiedQuery = QueryModifier.replaceKey(query, 'filename', 'city');
 console.log(modifiedQuery);
+
+
+// Your mistakenly stringified JSON object with single quotes
+let mistakenlyStringifiedObject = '{ "name": "hemang" }';
+
+// Remove single quotes from the beginning and end
+mistakenlyStringifiedObject = mistakenlyStringifiedObject.replace(/^'|'$/g, '');
+
+// Convert the string back to a JavaScript object
+let jsonObject = JSON.parse(mistakenlyStringifiedObject);
+
+// Existing array or create a new one
+let query = [];
+
+// Add the JavaScript object to the array
+query.push(jsonObject);
+
+// Log the query array to see the added JSON object
+console.log(query);
+
