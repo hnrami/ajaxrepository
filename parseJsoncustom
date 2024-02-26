@@ -1,0 +1,21 @@
+
+// Extract data from input JSON
+inputJson.responses.forEach(response => {
+    for (const key in response.aggregations) {
+        if (Object.prototype.hasOwnProperty.call(response.aggregations, key)) {
+            const buckets = response.aggregations[key].buckets;
+            if (buckets && buckets.length > 0) {
+                const element = [];
+                const fieldwithcountry = [];
+
+                buckets.forEach(bucket => {
+                    element.push(bucket.key);
+                    fieldwithcountry.push(`${key}=${JSON.stringify(bucket.commonfields.hits.hits)}`);
+                });
+
+                outJson.elements.push({ [key]: element });
+                outJson.fieldwithcountry.push({ [key]: fieldwithcountry });
+            }
+        }
+    }
+});
