@@ -1,27 +1,47 @@
-describe('constructor', () => {
-  it('should create a new instance of Client with correct options', () => {
-    // Stub process.env values for testing
-    const originalEnv = { ...process.env };
-    process.env.HOST_URL = 'https://example.com';
-    process.env.USER = 'testuser';
-    process.env.PASSWORD = 'testpassword';
+const { expect } = require('chai');
+const sinon = require('sinon');
+const { Client } = require('@opensearch-project/opensearch');
+const OpenSearchService = require('./OpenSearchService');
 
-    // Stub the Client constructor
-    const clientStub = sinon.stub(Client.prototype, 'constructor');
+describe('OpenSearchService', () => {
+    describe('request_opensearch', () => {
+        let openSearchService;
+        let msearchStub;
 
-    // Create an instance of SearchService
-    const searchService = new SearchService();
+        beforeEach(() => {
+            msearchStub = sinon.stub().resolves({ body: { /* mock response body */ } });
+            const clientStub = sinon.stub(Client.prototype, 'msearch').callsFake(msearchStub);
+            openSearchService = new OpenSearchService();
+        });
 
-    // Assert that Client constructor was called with the correct options
-    expect(clientStub).to.have.been.calledOnce; // Use Chai's chai-as-promised plugin for better readability
-    expect(clientStub.firstCall.args[0]).to.deep.equal({
-      ssl: { rejectUnauthorized: false },
-      node: 'https://example.com',
-      auth: { username: 'testuser', password: 'testpassword' },
-      headers: { 'Content-Type': 'application/json' }
+        afterEach(() => {
+            sinon.restore();
+        });
+
+        it('should make a request to OpenSearch and return response body', async () => {
+            const indexName = 'testIndex';
+            const queryJson = { /* mock query JSON */ };
+
+            const response = await openSearchService.request_opensearch(indexName, queryJson);
+
+            expect(msearchStub.calledOnce).to.be.true;
+            expect(msearchStub.firstCall.args[0]).to.deep.equal({
+                index: indexName,
+                body: queryJson
+            });
+            expect(response).to.deep.equal({ /* expected response body */ });
+        });
+
+        it('should throw an error if OpenSearch request fails', async () => {
+            const indexName = 'testIndex';
+            const queryJson = { /* mock query JSON */ };
+            const errorMessage = 'Error message from OpenSearch';
+
+            // Stub the msearch method to simulate an error
+            msearchStub.rejects(new Error(errorMessage));
+
+            // Ensure that the function throws the expected error
+            await expect(openSearchService.request_opensearch(indexName, queryJson)).to.be.rejectedWith(errorMessage);
+        });
     });
-
-    // Restore process.env values
-    process.env = { ...originalEnv };
-  });
 });
