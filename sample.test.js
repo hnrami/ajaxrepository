@@ -1,47 +1,49 @@
 const { expect } = require('chai');
 const sinon = require('sinon');
-const { Client } = require('@opensearch-project/opensearch');
-const OpenSearchService = require('./OpenSearchService');
+const RequestTransformationService = require('./RequestTransformationService');
 
-describe('OpenSearchService', () => {
-    describe('request_opensearch', () => {
-        let openSearchService;
-        let msearchStub;
-
-        beforeEach(() => {
-            msearchStub = sinon.stub().resolves({ body: { /* mock response body */ } });
-            const clientStub = sinon.stub(Client.prototype, 'msearch').callsFake(msearchStub);
-            openSearchService = new OpenSearchService();
+describe('RequestTransformationService', () => {
+    describe('calcculateoffset', () => {
+        it('should calculate the offset correctly', async () => {
+            const requestTransformationService = new RequestTransformationService();
+            const offset = await requestTransformationService.calcculateoffset(2, 10);
+            expect(offset).to.equal(10);
         });
 
-        afterEach(() => {
-            sinon.restore();
+        it('should set offset to 0 if pageNumber is undefined or 0', async () => {
+            const requestTransformationService = new RequestTransformationService();
+            let offset = await requestTransformationService.calcculateoffset(undefined, 10);
+            expect(offset).to.equal(0);
+
+            offset = await requestTransformationService.calcculateoffset(0, 10);
+            expect(offset).to.equal(0);
         });
+    });
 
-        it('should make a request to OpenSearch and return response body', async () => {
-            const indexName = 'testIndex';
-            const queryJson = { /* mock query JSON */ };
+    describe('formSearchFields', () => {
+        it('should return an array of keys from the given JSON string', async () => {
+            const requestTransformationService = new RequestTransformationService();
+            const fieldsJson = '{"key1": "value1", "key2": "value2"}';
+            const keys = await requestTransformationService.formSearchFields(fieldsJson);
+            expect(keys).to.deep.equal(['key1', 'key2']);
+        });
+    });
 
-            const response = await openSearchService.request_opensearch(indexName, queryJson);
-
-            expect(msearchStub.calledOnce).to.be.true;
-            expect(msearchStub.firstCall.args[0]).to.deep.equal({
-                index: indexName,
-                body: queryJson
+    describe('validateRquestFields', () => {
+        it('should validate request fields correctly', async () => {
+            const requestTransformationService = new RequestTransformationService();
+            const request = {
+                pageSize: '10',
+                pageNumber: '2',
+                SEARCH_STRIGNS: 'search string'
+            };
+            const validationResult = await requestTransformationService.validateRquestFields(request);
+            expect(validationResult).to.deep.equal({
+                validPagesize: true,
+                validPageNumber: true,
+                mandatoryKeys: ['SEARCH_STRIGNS'],
+                optionalkeys: ['pageSize', 'pageNumber']
             });
-            expect(response).to.deep.equal({ /* expected response body */ });
-        });
-
-        it('should throw an error if OpenSearch request fails', async () => {
-            const indexName = 'testIndex';
-            const queryJson = { /* mock query JSON */ };
-            const errorMessage = 'Error message from OpenSearch';
-
-            // Stub the msearch method to simulate an error
-            msearchStub.rejects(new Error(errorMessage));
-
-            // Ensure that the function throws the expected error
-            await expect(openSearchService.request_opensearch(indexName, queryJson)).to.be.rejectedWith(errorMessage);
         });
     });
 });
