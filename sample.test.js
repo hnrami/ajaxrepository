@@ -1,48 +1,63 @@
-
 const { expect } = require('chai');
-const ResponseTransformationService = require('./ResponseTransformationService');
+const sinon = require('sinon');
+const AutoComplateService = require('./AutoComplateService');
 
-describe('ResponseTransformationService', () => {
-    describe('aggregteIndexResposne', () => {
-        it('should aggregate index responses correctly', async () => {
-            const responseTransformationService = new ResponseTransformationService();
-            const input1 = { data: [{ key1: ['value1', 'value2'] }] };
-            const input2 = { data: [{ key2: ['value3', 'value4'] }] };
+describe('AutoComplateService', () => {
+    describe('searchAutoComplateAPi', () => {
+        it('should return success response when request fields are valid', async () => {
+            // Setup mocks or stubs for dependencies and required objects
+            const mockReq = {
+                query: {
+                    SEARCH_STRING: 'test',
+                    PAGE_SIZE: 10
+                    // Add other required query parameters
+                }
+            };
 
-            const output = await responseTransformationService.aggregteIndexResposne(input1, input2);
+            const mockRequestTransformationService = {
+                validateREquestFields: sinon.stub().resolves({
+                    mandatoryKeys: [constants.SEARCH_STRING],
+                    validPageSize: true,
+                    validPageNumber: true
+                })
+            };
 
-            // Add your assertions for the expected output here
+            const mockResponseTransformationService = {
+                aggregateindexrepsone: sinon.stub().resolves(/* mock aggregate response */)
+            };
+
+            const mockOpenSearchService = {
+                request_openSearch: sinon.stub().resolves(/* mock OpenSearch response */)
+            };
+
+            const autoComplateService = new AutoComplateService({
+                requestTransformationService: mockRequestTransformationService,
+                responseTransformationService: mockResponseTransformationService,
+                openSearchService: mockOpenSearchService
+                // Add other dependencies
+            });
+
+            const response = await autoComplateService.searchAutoComplateAPi(mockReq);
+
+            // Add assertions to verify the response
         });
+
+        // Add more test cases for different scenarios
     });
 
-    describe('checksizejson', () => {
-        it('should return default data if inputjson is null or empty', async () => {
-            const responseTransformationService = new ResponseTransformationService();
-            const inputJson = null;
+    describe('openSearchCommonIndex', () => {
+        it('should return response from OpenSearch service', async () => {
+            // Setup mocks or stubs for dependencies and required objects
+            const autoComplateService = new AutoComplateService(/* initialize with dependencies */);
 
-            const output = await responseTransformationService.checksizejson(inputJson);
+            // Call the method and validate the response
+            const response = await autoComplateService.openSearchCommonIndex(/* provide required parameters */);
 
-            // Add your assertions for the expected output here
+            // Add assertions to verify the response
         });
 
-        it('should return the inputjson if it is not null or empty', async () => {
-            const responseTransformationService = new ResponseTransformationService();
-            const inputJson = [{/* your input JSON */}];
-
-            const output = await responseTransformationService.checksizejson(inputJson);
-
-            // Add your assertions for the expected output here
-        });
+        // Add more test cases for different scenarios
     });
 
-    describe('convertDataResponses', () => {
-        it('should convert data responses from API response', async () => {
-            const responseTransformationService = new ResponseTransformationService();
-            const apiResponse = {/* mock API response */};
-
-            const output = await responseTransformationService.convertDataResponses(apiResponse);
-
-            // Add your assertions for the expected output here
-        });
-    });
+    // Add more test cases for other methods if necessary
 });
