@@ -43,27 +43,43 @@ describe('WellService', function() {
         };
     });
 
-    describe('wellApi method', function() {
-        it('should call validatewellREquestFields and request_well twice and return success', async function() {
-            mockRequestTransformationService.validatewellREquestFields.resolves({
-                search_field: "test",
-                pageSize_field: 10,
-                pageNumber_field: 1
-            });
-
-            mockSearchService.request_well.onFirstCall().resolves('firstPageResponse');
-            mockSearchService.request_well.onSecondCall().resolves('secondPageResponse');
-
-            mockResponseTransformationService.aggregateWellResponse.resolves('aggregatedResponse');
-
-            ResponseObj.returns({ status: 'success', data: 'aggregatedResponse' });
-
-            const result = await wellService.wellAPi(req);
-
-            sinon.assert.calledWith(mockRequestTransformationService.validatewellREquestFields, req.query);
-            sinon.assert.calledTwice(mockSearchService.request_well);
-            expect(result).to.deep.equal({ status: 'success', data: 'aggregatedResponse' });
+ describe('wellApi method', function() {
+    it('should call validatewellREquestFields and request_well twice and return success', async function() {
+        // Setup the stubs with expected resolutions
+        mockRequestTransformationService.validatewellREquestFields.resolves({
+            search_field: "test",
+            pageSize_field: 10,
+            pageNumber_field: 1
         });
+
+        mockSearchService.request_well.onFirstCall().resolves('firstPageResponse');
+        mockSearchService.request_well.onSecondCall().resolves('secondPageResponse');
+
+        mockResponseTransformationService.aggregateWellResponse.resolves('aggregatedResponse');
+
+        ResponseObj.returns({ status: 'success', data: 'aggregatedResponse' });
+
+        const result = await wellService.wellAPi(req);
+
+        // Assertions to check if the stubs were called with expected arguments
+        sinon.assert.calledWith(mockRequestTransformationService.validatewellREquestFields, req.query);
+        // Check if request_well was called with the expected arguments
+        sinon.assert.calledWith(mockSearchService.request_well.firstCall, req, {
+            search_field: "test",
+            pageSize_field: 10,
+            pageNumber_field: 1
+        });
+        sinon.assert.calledWith(mockSearchService.request_well.secondCall, req, {
+            search_field: "test",
+            pageSize_field: 10,
+            pageNumber_field: 2  // Assuming your service method sets pageNumber_field to 2 for the second call
+        });
+
+        sinon.assert.calledTwice(mockSearchService.request_well);
+        expect(result).to.deep.equal({ status: 'success', data: 'aggregatedResponse' });
+    });
+});
+
 
         it('should handle validation failure and return error response', async function() {
             mockRequestTransformationService.validatewellREquestFields.rejects(new Error("Validation failed"));
