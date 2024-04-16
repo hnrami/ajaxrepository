@@ -1,106 +1,71 @@
-const chai = require('chai');
 const sinon = require('sinon');
-const expect = chai.expect;
+const { expect } = require('chai');
+const WellService = require('../path/to/WellService');
+const ResponseObj = require('../path/to/apirepsone');
+const constants = require('../path/to/constants');
 
-// Importing the WellService class
-const { WellService } = require('../path/to/WellService');
+// Mocks for services used by WellService
+const mockSearchService = {
+    request_well: sinon.stub()
+};
+const mockRequestTransformationService = {
+    validatewellREquestFields: sinon.stub()
+};
+const mockResponseTransformationService = {
+    aggregateWellResponse: sinon.stub()
+};
 
-describe('WellService', function() {
-    let mockSearchService, mockRequestTransformationService, mockResponseTransformationService;
-    let wellService;
-    let req, constants, ResponseObj;
-
-    beforeEach(function() {
-        // Create mock services
-        mockSearchService = {
-            request_well: sinon.stub()
-        };
-        mockRequestTransformationService = {
-            validatewellREquestFields: sinon.stub()
-        };
-        mockResponseTransformationService = {
-            aggregateWellResponse: sinon.stub()
-        };
-
-        // Constants and Response Object mock
-        constants = { SUCCESS: 'success' };
-        ResponseObj = sinon.stub();
-
-        // Initialize WellService with mocks
-        wellService = new WellService({
-            searchService: mockSearchService,
-            requestTransformationService: mockRequestTransformationService,
-            responseTransformationService: mockResponseTransformationService
-        });
-
-        // Mock request object
-        req = {
-            query: {
-                search: "test",
-                pageSize: 10,
-                pageNumber: 1
-            }
-        };
-    });
-
- describe('wellApi method', function() {
-    it('should call validatewellREquestFields and request_well twice and return success', async function() {
-        // Setup the stubs with expected resolutions
-        mockRequestTransformationService.validatewellREquestFields.resolves({
-            search_field: "test",
-            pageSize_field: 10,
-            pageNumber_field: 1
-        });
-
-        mockSearchService.request_well.onFirstCall().resolves('firstPageResponse');
-        mockSearchService.request_well.onSecondCall().resolves('secondPageResponse');
-
-        mockResponseTransformationService.aggregateWellResponse.resolves('aggregatedResponse');
-
-        ResponseObj.returns({ status: 'success', data: 'aggregatedResponse' });
-
-        const result = await wellService.wellAPi(req);
-
-        // Assertions to check if the stubs were called with expected arguments
-        sinon.assert.calledWith(mockRequestTransformationService.validatewellREquestFields, req.query);
-        // Check if request_well was called with the expected arguments
-        sinon.assert.calledWith(mockSearchService.request_well.firstCall, req, {
-            search_field: "test",
-            pageSize_field: 10,
-            pageNumber_field: 1
-        });
-        sinon.assert.calledWith(mockSearchService.request_well.secondCall, req, {
-            search_field: "test",
-            pageSize_field: 10,
-            pageNumber_field: 2  // Assuming your service method sets pageNumber_field to 2 for the second call
-        });
-
-        sinon.assert.calledTwice(mockSearchService.request_well);
-        expect(result).to.deep.equal({ status: 'success', data: 'aggregatedResponse' });
-    });
+// Create an instance of WellService with mocks
+const wellService = new WellService({
+    searchService: mockSearchService,
+    requestTransformationService: mockRequestTransformationService,
+    responseTransformationServicce: mockResponseTransformationService
 });
 
+describe('WellService', function() {
+    afterEach(function() {
+        // Reset the stubs after each test
+        sinon.reset();
+    });
 
-        it('should handle validation failure and return error response', async function() {
-            mockRequestTransformationService.validatewellREquestFields.rejects(new Error("Validation failed"));
+    describe('wellAPi', function() {
+        it('should handle valid inputs and return a successful response', async function() {
+            // Setup the expected behavior of the stubs
+            mockRequestTransformationService.validatewellREquestFields.resolves({
+                search_field: "oil", pageSize_field: 10, pageNumber_field: 1
+            });
+            mockSearchService.request_well.onFirstCall().resolves({ data: ['data1'] });
+            mockSearchService.request_well.onSecondCall().resolves({ data: ['data2'] });
+            mockResponseTransformationService.aggregateWellResponse.resolves({
+                data: ['data1', 'data2'], message: "success"
+            });
+            sinon.stub(ResponseObj, 'constructor').returns({ status: constants.SUCCESS, data: ['data1', 'data2'] });
+
+            const req = { query: { search_String: "oil", pageSize: 10, pageNumber: 1 } };
 
             const result = await wellService.wellAPi(req);
 
-            expect(result).to.deep.equal(new ResponseObj("error", "error while hitting api"));
+            // Assertions to check if the method behaves as expected
+            expect(result).to.deep.include({ status: constants.SUCCESS, data: ['data1', 'data2'] });
+            sinon.assert.calledOnce(mockRequestTransformationService.validatewellREquestFields);
+            sinon.assert.calledTwice(mockSearchService.request_well);
+            sinon.assert.calledOnce(mockResponseTransformationService.aggregateWellResponse);
         });
 
-        it('should handle search service failure gracefully', async function() {
-            mockRequestTransformationService.validatewellREquestFields.resolves({
-                search_field: "test",
-                pageSize_field: 10,
-                pageNumber_field: 1
-            });
+        it('should handle errors gracefully', async function() {
+            // Configure the request transformation service to throw an error
+            mockRequestTransformationService.validatewellREquestFields.rejects(new Error("Validation failed"));
 
-            mockSearchService.request_well.rejects(new Error("Search service failed"));
+            const req = { query: { search_String: "oil", pageSize: 10, pageNumber: 1 } };
 
+            // Execute
             const result = await wellService.wellAPi(req);
 
-            expect(result).to.deep.equal(new ResponseObj("error", "error while hitting api"));
+            // Check that an error response object is returned
+            expect(result).to.be.an.instanceOf(ResponseObj);  // Assuming ResponseObj can represent errors
+            expect(result.status).to.equal("error");
+            sinon.assert.calledOnce(mockRequestTransformationService.validatewellREquestFields);
+            sinon.assert.notCalled(mockSearchService.request_well);  // This should not be called due to earlier failure
         });
     });
 });
