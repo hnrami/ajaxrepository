@@ -10,13 +10,18 @@ function getTokenExchangeDetailsTemp(tokenExchangeConfig) {
 
             if (jobject["exchange-token"] === null) {
                 let exchangedMapDetails = new Map();
-                exchangedMapDetails.set("sample", ""); // Assuming you wanted to put a string value here
 
-                configMaps.set("sample", exchangedMapDetails);
+                if (jobject["introspectURL"] !== null) {
+                    exchangedMapDetails.set("sample", jobject["clientID"]);
+                    configMaps.set("sample", exchangedMapDetails);
+                } else {
+                    let exchangedMapDetails = new Map();
+                    exchangedMapDetails.set("sample", jobject["iss"]);
+                    configMaps.set(jobject["test"], exchangedMapDetails);
+                }
             }
         }
     } catch (e) {
         // Handle the exception
     }
 }
-
