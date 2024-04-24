@@ -1,27 +1,20 @@
-function getTokenExchangeDetailsTemp(tokenExchangeConfig) {
-    let configMaps = new Map();
+async function postForMapping(path, formData, headers) {
+    if (!headers.hasOwnProperty('contentType')) {
+        headers['contentType'] = 'application/x-www-form-urlencoded';
+    }
 
     try {
-        let jobject = JSON.parse(tokenExchangeConfig);
-        let jArray = jobject["toekn-issue"]; // Fix the typo in "token-issue"
+        const response = await axios.post(path, formData, {
+            headers: headers
+        });
+        const map = response.data;
 
-        for (let i = 0; i < jArray.length; i++) {
-            let jobject = jArray[i];
-
-            if (jobject["exchange-token"] === null) {
-                let exchangedMapDetails = new Map();
-
-                if (jobject["introspectURL"] !== null) {
-                    exchangedMapDetails.set("sample", jobject["clientID"]);
-                    configMaps.set("sample", exchangedMapDetails);
-                } else {
-                    let exchangedMapDetails = new Map();
-                    exchangedMapDetails.set("sample", jobject["iss"]);
-                    configMaps.set(jobject["test"], exchangedMapDetails);
-                }
-            }
+        if (map && map.hasOwnProperty('active') && map['active'] !== true) {
+            throw new InvalidTokenException(path);
         }
-    } catch (e) {
+
+        return map;
+    } catch (error) {
         // Handle the exception
     }
 }
