@@ -1,12 +1,12 @@
-const axios = require('axios');
+function getAuthorizationHeader(clientID, clientSecret) {
+    if (!clientID || !clientSecret) {
+        log.warn('NULL ClientID');
+    }
 
-async function interospectToken(resultMapTemp, accessToken) {
-    const formData = new URLSearchParams();
-    formData.append('tokenName', accessToken);
-
-    const headers = {
-        'Authorization': getAuthorizationHeader(resultMapTemp.get('clinetID'), resultMapTemp.get('client_secert'))
-    };
-
-    return await postForMapping(resultMapTemp.get('introspectURL'), formData, headers);
+    const creds = `${clientID}:${clientSecret}`;
+    try {
+        return 'Basic ' + Buffer.from(creds, 'utf-8').toString('base64');
+    } catch (error) {
+        throw new Error('Could not convert string');
+    }
 }
