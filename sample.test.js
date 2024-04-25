@@ -1,20 +1,12 @@
-async function postForMapping(path, formData, headers) {
-    if (!headers.hasOwnProperty('contentType')) {
-        headers['contentType'] = 'application/x-www-form-urlencoded';
-    }
+const axios = require('axios');
 
-    try {
-        const response = await axios.post(path, formData, {
-            headers: headers
-        });
-        const map = response.data;
+async function interospectToken(resultMapTemp, accessToken) {
+    const formData = new URLSearchParams();
+    formData.append('tokenName', accessToken);
 
-        if (map && map.hasOwnProperty('active') && map['active'] !== true) {
-            throw new InvalidTokenException(path);
-        }
+    const headers = {
+        'Authorization': getAuthorizationHeader(resultMapTemp.get('clinetID'), resultMapTemp.get('client_secert'))
+    };
 
-        return map;
-    } catch (error) {
-        // Handle the exception
-    }
+    return await postForMapping(resultMapTemp.get('introspectURL'), formData, headers);
 }
