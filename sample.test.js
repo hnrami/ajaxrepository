@@ -1,11 +1,15 @@
-const base64url = require('base64url');
-const { parse } = require('querystring');
+const interospectToken = require('./interospectToken'); // assuming interospectToken is defined in a separate file
 
-function extractTokenIssuer(token) {
-    const tokensplit = token.split('.');
-    const tokenBody = base64url.decode(tokensplit[1]);
-    const tok = JSON.parse(tokenBody);
-    const uri = tok.iss;
-    console.log('uri', uri);
-    return uri;
+async function callIntrospections(resultMapTemp, token) {
+    try {
+        const resultMap = await interospectToken(resultMapTemp, token);
+
+        if (resultMap['active'] && resultMap['active'] !== true) {
+            throw new Error(`Invalid token: ${token}`);
+        }
+
+        return resultMap;
+    } catch (error) {
+        throw new Error(error.message);
+    }
 }
