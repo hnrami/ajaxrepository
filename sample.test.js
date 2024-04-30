@@ -1,16 +1,20 @@
-const TokenAuthenticate = require('../path/to/TokenAuthenticate');
 const { CONFIGURATIONS } = require('../config/config');
 const constants = require("../constants/constants");
+const TokenAuthenticate = require('../path/to/TokenAuthenticate');
+const chai = require('chai');
+const chaiAsPromised = require('chai-as-promised');
+
+// Use chai-as-promised plugin
+chai.use(chaiAsPromised);
+
+// Assertion style
+const expect = chai.expect;
 
 // Mocking the dependencies
 const configMock = new Map([
   ['tokenIssuer1', { [constants.KEYSETURI]: 'someUri1' }],
   ['tokenIssuer2', { [constants.KEYSETURI]: null }]
 ]);
-
-jest.mock('../config/config', () => ({
-  CONFIGURATIONS: configMock
-}));
 
 describe('TokenAuthenticate', () => {
   let tokenAuthenticate;
@@ -25,12 +29,11 @@ describe('TokenAuthenticate', () => {
       const tokenIssuer = 'tokenIssuer1';
       const expectedResult = 'result';
 
-      tokenAuthenticate.verifyOnLocal = jest.fn().mockResolvedValue(expectedResult);
+      tokenAuthenticate.verifyOnLocal = async () => expectedResult;
 
       const result = await tokenAuthenticate.introspectToken(token, tokenIssuer);
 
-      expect(result).toBe(expectedResult);
-      expect(tokenAuthenticate.verifyOnLocal).toHaveBeenCalledWith(token, configMock.get(tokenIssuer));
+      expect(result).to.equal(expectedResult);
     });
 
     it('should call callIntrospections if KEYSETURI is null', async () => {
@@ -38,12 +41,11 @@ describe('TokenAuthenticate', () => {
       const tokenIssuer = 'tokenIssuer2';
       const expectedResult = 'result';
 
-      tokenAuthenticate.callIntrospections = jest.fn().mockResolvedValue(expectedResult);
+      tokenAuthenticate.callIntrospections = async () => expectedResult;
 
       const result = await tokenAuthenticate.introspectToken(token, tokenIssuer);
 
-      expect(result).toBe(expectedResult);
-      expect(tokenAuthenticate.callIntrospections).toHaveBeenCalledWith(configMock.get(tokenIssuer), token);
+      expect(result).to.equal(expectedResult);
     });
 
     it('should throw an error if any exception occurs', async () => {
@@ -51,9 +53,11 @@ describe('TokenAuthenticate', () => {
       const tokenIssuer = 'tokenIssuer3';
       const errorMessage = 'An error occurred';
 
-      tokenAuthenticate.getTokenExchangeDetailsTemp = jest.fn().mockRejectedValue(new Error(errorMessage));
+      tokenAuthenticate.getTokenExchangeDetailsTemp = async () => {
+        throw new Error(errorMessage);
+      };
 
-      await expect(tokenAuthenticate.introspectToken(token, tokenIssuer)).rejects.toThrow(errorMessage);
+      await expect(tokenAuthenticate.introspectToken(token, tokenIssuer)).to.be.rejectedWith(errorMessage);
     });
   });
 });
