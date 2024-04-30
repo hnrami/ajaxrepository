@@ -1,19 +1,59 @@
-const getIntrospectConfigurations = require('./getIntrospectConfigurations'); // Assuming getIntrospectConfigurations is defined in a separate file
-const verfiyOnLocal = require('./verfiyOnLocal'); // Assuming verfiyOnLocal is defined in a separate file
-const callIntrospections = require('./callIntrospections'); // Assuming callIntrospections is defined in a separate file
+const TokenAuthenticate = require('../path/to/TokenAuthenticate');
+const { CONFIGURATIONS } = require('../config/config');
+const constants = require("../constants/constants");
 
-async function introspectToken(token, tokenIssuer) {
-    let resultMap = {};
-    let resultMapTemp = {};
+// Mocking the dependencies
+const configMock = new Map([
+  ['tokenIssuer1', { [constants.KEYSETURI]: 'someUri1' }],
+  ['tokenIssuer2', { [constants.KEYSETURI]: null }]
+]);
 
-    const configMaps = getIntrospectConfigurations();
-    resultMapTemp = configMaps[tokenIssuer];
+jest.mock('../config/config', () => ({
+  CONFIGURATIONS: configMock
+}));
 
-    if (resultMapTemp['keyset-uri'] !== null) {
-        return await verfiyOnLocal(token, resultMapTemp);
-    }
+describe('TokenAuthenticate', () => {
+  let tokenAuthenticate;
 
-    resultMap = await callIntrospections(resultMapTemp, token);
+  beforeEach(() => {
+    tokenAuthenticate = new TokenAuthenticate();
+  });
 
-    return resultMap;
-}
+  describe('introspectToken', () => {
+    it('should call verifyOnLocal if KEYSETURI is not null', async () => {
+      const token = 'sampleToken';
+      const tokenIssuer = 'tokenIssuer1';
+      const expectedResult = 'result';
+
+      tokenAuthenticate.verifyOnLocal = jest.fn().mockResolvedValue(expectedResult);
+
+      const result = await tokenAuthenticate.introspectToken(token, tokenIssuer);
+
+      expect(result).toBe(expectedResult);
+      expect(tokenAuthenticate.verifyOnLocal).toHaveBeenCalledWith(token, configMock.get(tokenIssuer));
+    });
+
+    it('should call callIntrospections if KEYSETURI is null', async () => {
+      const token = 'sampleToken';
+      const tokenIssuer = 'tokenIssuer2';
+      const expectedResult = 'result';
+
+      tokenAuthenticate.callIntrospections = jest.fn().mockResolvedValue(expectedResult);
+
+      const result = await tokenAuthenticate.introspectToken(token, tokenIssuer);
+
+      expect(result).toBe(expectedResult);
+      expect(tokenAuthenticate.callIntrospections).toHaveBeenCalledWith(configMock.get(tokenIssuer), token);
+    });
+
+    it('should throw an error if any exception occurs', async () => {
+      const token = 'sampleToken';
+      const tokenIssuer = 'tokenIssuer3';
+      const errorMessage = 'An error occurred';
+
+      tokenAuthenticate.getTokenExchangeDetailsTemp = jest.fn().mockRejectedValue(new Error(errorMessage));
+
+      await expect(tokenAuthenticate.introspectToken(token, tokenIssuer)).rejects.toThrow(errorMessage);
+    });
+  });
+});
