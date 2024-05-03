@@ -53,3 +53,31 @@ async function verifyOnLocal(token, resultMapTemp) {
         throw new Error(error.message); // or handle the error as required
     }
 }
+
+
+
+const { JWK, JWKSet } = require('node-jose');
+
+async function fetchJWKS(jwksURL) {
+    try {
+        // Fetch the JWK Set (JSON Web Key Set) from the JWKS URL
+        const { keys } = await JWK.asKeyStore(JWKSet.asKeyStoreRequest(jwksURL).fetch());
+        return keys;
+    } catch (error) {
+        console.error("Error fetching JWKS:", error.message);
+        throw error; // Rethrow the error for handling by the caller
+    }
+}
+
+// Usage example:
+const jwksURL = "https://example.com/.well-known/jwks.json";
+fetchJWKS(jwksURL)
+    .then((keys) => {
+        console.log("JWKS keys:", keys);
+        // Proceed with JWT verification using the fetched JWKS keys
+    })
+    .catch((error) => {
+        // Handle error
+        console.error("Error:", error.message);
+    });
+
