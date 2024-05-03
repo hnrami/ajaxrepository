@@ -1,117 +1,55 @@
-const { CONFIGURATIONS } = require('../config/config');
-const constants = require("../constants/constants");
-const TokenAuthenticate = require('../path/to/TokenAuthenticate');
-const chai = require('chai');
-const chaiAsPromised = require('chai-as-promised');
+const jwt = require('jsonwebtoken');
+const jwkToPem = require('jwk-to-pem');
+const { JWK, JWKS } = require('jose');
+const { parse: parseURL } = require('url');
 
-// Use chai-as-promised plugin
-chai.use(chaiAsPromised);
+async function verifyOnLocal(token, resultMapTemp) {
+    try {
+        // Decode the JWT token
+        const decodedJwt = jwt.decode(token, { complete: true });
 
-// Assertion style
-const expect = chai.expect;
+        // Create a map to store claims
+        const claimMap = {};
 
-// Mocking the dependencies
-const configMock = new Map([
-  ['tokenIssuer1', { [constants.KEYSETURI]: 'someUri1' }],
-  ['tokenIssuer2', { [constants.KEYSETURI]: null }]
-]);
+        // Get the keyset URI from resultMapTemp
+        const keysetUri = resultMapTemp['keyset-uri'];
 
-describe('TokenAuthenticate', () => {
-  let tokenAuthenticate;
+        // Parse the keyset URI to extract the hostname and path
+        const { hostname, pathname } = parseURL(keysetUri);
 
-  beforeEach(() => {
-    tokenAuthenticate = new TokenAuthenticate();
-  });
+        // Construct the JWKS URL (JWK Set URL)
+        const jwksURL = {
+            host: hostname,
+            path: pathname
+        };
 
-  describe('introspectToken', () => {
-    it('should call verifyOnLocal if KEYSETURI is not null', async () => {
-      const token = 'sampleToken';
-      const tokenIssuer = 'tokenIssuer1';
-      const expectedResult = 'result';
+        // Fetch the JWK Set (JSON Web Key Set) from the JWKS URL
+        const jwks = await JWKS.asKeyStore(JWKS.asKeyStoreRequest(jwksURL).fetch());
 
-      tokenAuthenticate.verifyOnLocal = async () => expectedResult;
+        // Find the JWK corresponding to the key ID from the JWT token
+        const jwk = jwks.get(decodedJwt.header.kid);
 
-      const result = await tokenAuthenticate.introspectToken(token, tokenIssuer);
+        // Convert the JWK to PEM format for verification
+        const pem = jwkToPem(jwk.toPEM());
 
-      expect(result).to.equal(expectedResult);
-    });
+        // Verify the JWT token using the PEM public key
+        jwt.verify(token, pem);
 
-    it('should call callIntrospections if KEYSETURI is null', async () => {
-      const token = 'sampleToken';
-      const tokenIssuer = 'tokenIssuer2';
-      const expectedResult = 'result';
+        // Decode the claims from the token
+        const claims = jwt.decode(token);
 
-      tokenAuthenticate.callIntrospections = async () => expectedResult;
+        // If the 'exp' claim is an integer, convert it to a BigInt
+        if (typeof claims.exp === 'number') {
+            claims.exp = BigInt(claims.exp);
+        }
 
-      const result = await tokenAuthenticate.introspectToken(token, tokenIssuer);
+        // Add the 'access_token' key to the claims object
+        claims['access_token'] = token;
 
-      expect(result).to.equal(expectedResult);
-    });
-
-    it('should throw an error if any exception occurs', async () => {
-      const token = 'sampleToken';
-      const tokenIssuer = 'tokenIssuer3';
-      const errorMessage = 'An error occurred';
-
-      tokenAuthenticate.getTokenExchangeDetailsTemp = async () => {
-        throw new Error(errorMessage);
-      };
-
-      await expect(tokenAuthenticate.introspectToken(token, tokenIssuer)).to.be.rejectedWith(errorMessage);
-    });
-  });
-
-
-  const { CONFIGURATIONS } = require('../config/config');
-const constants = require("../constants/constants");
-const TokenAuthenticate = require('../path/to/TokenAuthenticate');
-const chai = require('chai');
-const chaiAsPromised = require('chai-as-promised');
-
-// Use chai-as-promised plugin
-chai.use(chaiAsPromised);
-
-// Assertion style
-const expect = chai.expect;
-
-// Mocking the dependencies
-const configMock = new Map([
-  ['tokenIssuer1', { [constants.KEYSETURI]: 'someUri1' }],
-  ['tokenIssuer2', { [constants.KEYSETURI]: null }]
-]);
-
-describe('TokenAuthenticate', () => {
-  let tokenAuthenticate;
-
-  beforeEach(() => {
-    tokenAuthenticate = new TokenAuthenticate();
-  });
-
-  describe('tokendecode', () => {
-    it('should call extractTokenIssuer and introspectToken', async () => {
-      const token = 'sampleToken';
-      const tokenIssuer = 'tokenIssuer1';
-      const expectedResult = new Map();
-
-      tokenAuthenticate.extractTokenIssuer = async () => tokenIssuer;
-      tokenAuthenticate.introspectToken = async () => expectedResult;
-
-      const result = await tokenAuthenticate.tokendecode(token);
-
-      expect(result).to.equal(expectedResult);
-    });
-
-    it('should throw an error if any exception occurs', async () => {
-      const token = 'sampleToken';
-      const errorMessage = 'An error occurred';
-
-      tokenAuthenticate.extractTokenIssuer = async () => {
-        throw new Error(errorMessage);
-      };
-
-      await expect(tokenAuthenticate.tokendecode(token)).to.be.rejectedWith(errorMessage);
-    });
-  });
-});
-
-});
+        // Return the claims object
+        return claims;
+    } catch (error) {
+        // Handle errors
+        throw new Error(error.message); // or handle the error as required
+    }
+}
