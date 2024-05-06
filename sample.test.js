@@ -1,6 +1,5 @@
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
-const { promisify } = require('util');
 
 async function verifyOnLocal(token, resultMapTemp) {
     try {
@@ -18,16 +17,20 @@ async function verifyOnLocal(token, resultMapTemp) {
             jwksUri: keysetUri
         });
 
-        // Promisify the client.getSigningKey function
-        const getSigningKeyAsync = promisify(client.getSigningKey).bind(client);
-
         // Get the key ID from the decoded JWT
         const kid = decodedJwt.header.kid;
 
         // Retrieve the JWK (JSON Web Key) using the key ID
         const getKey = async () => {
-            const key = await getSigningKeyAsync(kid);
-            return key.getPublicKey();
+            return new Promise((resolve, reject) => {
+                client.getSigningKey(kid, (err, key) => {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(key.getPublicKey());
+                    }
+                });
+            });
         };
 
         // Verify the JWT token using the RSA public key fetched from the JWK
