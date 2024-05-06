@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const jwksClient = require('jwks-rsa');
+const { promisify } = require('util');
 
 async function verifyOnLocal(token, resultMapTemp) {
     try {
@@ -12,27 +13,25 @@ async function verifyOnLocal(token, resultMapTemp) {
         // Get the keyset URI from the resultMapTemp
         const keysetUri = resultMapTemp['keyset-uri'];
 
-        // Create a JWKS (JSON Web Key Set) client using the keyset URI
+        // Create a new JWKS (JSON Web Key Set) client instance
         const client = jwksClient({
             jwksUri: keysetUri
         });
+
+        // Promisify the client.getSigningKey function
+        const getSigningKeyAsync = promisify(client.getSigningKey).bind(client);
 
         // Get the key ID from the decoded JWT
         const kid = decodedJwt.header.kid;
 
         // Retrieve the JWK (JSON Web Key) using the key ID
-        const getKey = (header, callback) => {
-            client.getSigningKey(header.kid, (err, key) => {
-                if (err) {
-                    callback(err);
-                } else {
-                    callback(null, key.getPublicKey());
-                }
-            });
+        const getKey = async () => {
+            const key = await getSigningKeyAsync(kid);
+            return key.getPublicKey();
         };
 
         // Verify the JWT token using the RSA public key fetched from the JWK
-        const decoded = jwt.verify(token, getKey, {
+        const decoded = jwt.verify(token, await getKey(), {
             algorithms: ['RS256']
         });
 
@@ -41,7 +40,7 @@ async function verifyOnLocal(token, resultMapTemp) {
             claimMap[key] = value;
         }
 
-        // If the claimMap contains the 'exp' claim and its value is a number, convert it to a Long
+        // If the claimMap contains the 'exp' claim and its value is a number, convert it to a BigInt
         if (claimMap.hasOwnProperty('exp') && typeof claimMap['exp'] === 'number') {
             claimMap['exp'] = BigInt(claimMap['exp']);
         }
