@@ -1,7 +1,5 @@
 const jwt = require('jsonwebtoken');
-const jwkToPem = require('jwk-to-pem');
-const { JWK, JWKS } = require('jose');
-const { parse: parseURL } = require('url');
+const jwksClient = require('jwks-rsa');
 
 async function verifyOnLocal(token, resultMapTemp) {
     try {
@@ -11,73 +9,64 @@ async function verifyOnLocal(token, resultMapTemp) {
         // Create a map to store claims
         const claimMap = {};
 
-        // Get the keyset URI from resultMapTemp
+        // Get the keyset URI from the resultMapTemp
         const keysetUri = resultMapTemp['keyset-uri'];
 
-        // Parse the keyset URI to extract the hostname and path
-        const { hostname, pathname } = parseURL(keysetUri);
+        // Create a JWKS (JSON Web Key Set) client using the keyset URI
+        const client = jwksClient({
+            jwksUri: keysetUri
+        });
 
-        // Construct the JWKS URL (JWK Set URL)
-        const jwksURL = {
-            host: hostname,
-            path: pathname
+        // Get the key ID from the decoded JWT
+        const kid = decodedJwt.header.kid;
+
+        // Retrieve the JWK (JSON Web Key) using the key ID
+        const getKey = (header, callback) => {
+            client.getSigningKey(header.kid, (err, key) => {
+                if (err) {
+                    callback(err);
+                } else {
+                    callback(null, key.getPublicKey());
+                }
+            });
         };
 
-        // Fetch the JWK Set (JSON Web Key Set) from the JWKS URL
-        const jwks = await JWKS.asKeyStore(JWKS.asKeyStoreRequest(jwksURL).fetch());
+        // Verify the JWT token using the RSA public key fetched from the JWK
+        const decoded = jwt.verify(token, getKey, {
+            algorithms: ['RS256']
+        });
 
-        // Find the JWK corresponding to the key ID from the JWT token
-        const jwk = jwks.get(decodedJwt.header.kid);
-
-        // Convert the JWK to PEM format for verification
-        const pem = jwkToPem(jwk.toPEM());
-
-        // Verify the JWT token using the PEM public key
-        jwt.verify(token, pem);
-
-        // Decode the claims from the token
-        const claims = jwt.decode(token);
-
-        // If the 'exp' claim is an integer, convert it to a BigInt
-        if (typeof claims.exp === 'number') {
-            claims.exp = BigInt(claims.exp);
+        // Parse the claims from the token
+        for (const [key, value] of Object.entries(decoded)) {
+            claimMap[key] = value;
         }
 
-        // Add the 'access_token' key to the claims object
-        claims['access_token'] = token;
+        // If the claimMap contains the 'exp' claim and its value is a number, convert it to a Long
+        if (claimMap.hasOwnProperty('exp') && typeof claimMap['exp'] === 'number') {
+            claimMap['exp'] = BigInt(claimMap['exp']);
+        }
 
-        // Return the claims object
-        return claims;
+        // Add the 'access_token' key to the claimMap with the token value
+        claimMap['access_token'] = token;
+
+        // Return the claimMap containing the decoded claims from the token
+        return claimMap;
     } catch (error) {
-        // Handle errors
-        throw new Error(error.message); // or handle the error as required
+        // Handle exceptions
+        throw new Error(`Error verifying token: ${error.message}`);
     }
 }
 
+// Example usage:
+const token = 'YOUR_JWT_TOKEN_HERE';
+const resultMapTemp = {
+    'keyset-uri': 'YOUR_KEYSET_URI_HERE'
+};
 
-
-const { JWK, JWKSet } = require('node-jose');
-
-async function fetchJWKS(jwksURL) {
-    try {
-        // Fetch the JWK Set (JSON Web Key Set) from the JWKS URL
-        const { keys } = await JWK.asKeyStore(JWKSet.asKeyStoreRequest(jwksURL).fetch());
-        return keys;
-    } catch (error) {
-        console.error("Error fetching JWKS:", error.message);
-        throw error; // Rethrow the error for handling by the caller
-    }
-}
-
-// Usage example:
-const jwksURL = "https://example.com/.well-known/jwks.json";
-fetchJWKS(jwksURL)
-    .then((keys) => {
-        console.log("JWKS keys:", keys);
-        // Proceed with JWT verification using the fetched JWKS keys
+verifyOnLocal(token, resultMapTemp)
+    .then(claimMap => {
+        console.log('Decoded claims:', claimMap);
     })
-    .catch((error) => {
-        // Handle error
-        console.error("Error:", error.message);
+    .catch(error => {
+        console.error('Error:', error.message);
     });
-
