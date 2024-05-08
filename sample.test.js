@@ -2,122 +2,58 @@ const { expect } = require('chai');
 const sinon = require('sinon');
 
 // Import the function to be tested
-const { introspectToken } = require('./yourFile'); // Update the path accordingly
+const { postMapping } = require('./yourFile'); // Update the path accordingly
 
-describe('introspectToken', () => {
-  it('should return the result when called with valid inputs', async () => {
-    // Stub the required methods and values
-    const resultMapTemp = new Map([
-      [constants.CLIENT_ID, 'yourClientId'],
-      [constants.CLIENT_SECRET, 'yourClientSecret'],
-      [constants.INTROSPECT_TOKEN_URL, 'yourIntrospectTokenUrl']
-    ]);
-    const accessToken = 'validAccessToken';
-    const expectedResult = 'expectedResult';
-    
-    const getAuthorizationHeaderStub = sinon.stub().resolves('validAuthorizationHeader');
-    const postForMappingStub = sinon.stub().resolves(expectedResult);
-    
-    const fakeThis = {
-      getAuthorizationHeader: getAuthorizationHeaderStub,
-      postForMapping: postForMappingStub
-    };
+describe('postMapping', () => {
+  it('should return the result when called with valid inputs and successful HTTP POST request', async () => {
+    // Define inputs
+    const path = 'yourPostEndpoint';
+    const formData = { key: 'value' };
+    const headers = { 'Authorization': 'Bearer yourAccessToken' };
+    const expectedResult = { active: true };
+
+    // Stub the axios.post method to simulate a successful HTTP POST request
+    const axiosPostStub = sinon.stub().resolves({ data: expectedResult });
 
     // Call the function
-    const result = await introspectToken.call(fakeThis, resultMapTemp, accessToken);
+    const result = await postMapping(path, formData, headers, axiosPostStub);
 
     // Assertions
-    expect(getAuthorizationHeaderStub.calledOnceWith('yourClientId', 'yourClientSecret')).to.be.true;
-    expect(postForMappingStub.calledOnceWith('yourIntrospectTokenUrl', sinon.match.any, { 'Authorization': 'validAuthorizationHeader' })).to.be.true;
-    expect(result).to.equal(expectedResult);
+    expect(axiosPostStub.calledOnceWith(path, formData, { headers })).to.be.true;
+    expect(result).to.deep.equal(expectedResult);
   });
 
-  it('should throw an error when an error occurs', async () => {
-    // Stub the required methods to throw an error
-    const resultMapTemp = new Map([
-      [constants.CLIENT_ID, 'yourClientId'],
-      [constants.CLIENT_SECRET, 'yourClientSecret'],
-      [constants.INTROSPECT_TOKEN_URL, 'yourIntrospectTokenUrl']
-    ]);
-    const accessToken = 'validAccessToken';
-    const errorMessage = 'An error occurred';
+  it('should throw an error when an error occurs during the HTTP POST request', async () => {
+    // Define inputs
+    const path = 'yourPostEndpoint';
+    const formData = { key: 'value' };
+    const headers = { 'Authorization': 'Bearer yourAccessToken' };
+    const errorMessage = 'An error occurred during HTTP POST request';
 
-    const getAuthorizationHeaderStub = sinon.stub().rejects(new Error(errorMessage));
-    const postForMappingStub = sinon.stub();
-
-    const fakeThis = {
-      getAuthorizationHeader: getAuthorizationHeaderStub,
-      postForMapping: postForMappingStub
-    };
+    // Stub the axios.post method to simulate an error during the HTTP POST request
+    const axiosPostStub = sinon.stub().rejects(new Error(errorMessage));
 
     // Call the function and assert that it throws an error
-    await expect(introspectToken.call(fakeThis, resultMapTemp, accessToken)).to.be.rejectedWith(Error, errorMessage);
+    await expect(postMapping(path, formData, headers, axiosPostStub)).to.be.rejectedWith(Error, errorMessage);
 
     // Assertions
-    expect(getAuthorizationHeaderStub.calledOnceWith('yourClientId', 'yourClientSecret')).to.be.true;
-    expect(postForMappingStub.notCalled).to.be.true; // Ensure that postForMapping is not called
-  });
-});
-
-
-describe('introspectToken', () => {
-  it('should return the result when called with valid inputs', async () => {
-    // Define a valid resultMapTemp
-    const resultMapTemp = {
-      get: (key) => {
-        if (key === constants.CLIENT_ID) return 'yourClientId';
-        if (key === constants.CLIENT_SECRET) return 'yourClientSecret';
-        if (key === constants.INTROSPECT_TOKEN_URL) return 'yourIntrospectTokenUrl';
-        return undefined;
-      }
-    };
-    const accessToken = 'validAccessToken';
-    const expectedResult = 'expectedResult';
-    
-    const getAuthorizationHeaderStub = sinon.stub().resolves('validAuthorizationHeader');
-    const postForMappingStub = sinon.stub().resolves(expectedResult);
-    
-    const fakeThis = {
-      getAuthorizationHeader: getAuthorizationHeaderStub,
-      postForMapping: postForMappingStub
-    };
-
-    // Call the function
-    const result = await introspectToken.call(fakeThis, resultMapTemp, accessToken);
-
-    // Assertions
-    expect(getAuthorizationHeaderStub.calledOnceWith('yourClientId', 'yourClientSecret')).to.be.true;
-    expect(postForMappingStub.calledOnceWith('yourIntrospectTokenUrl', sinon.match.any, { 'Authorization': 'validAuthorizationHeader' })).to.be.true;
-    expect(result).to.equal(expectedResult);
+    expect(axiosPostStub.calledOnceWith(path, formData, { headers })).to.be.true;
   });
 
-  it('should throw an error when an error occurs', async () => {
-    // Define a valid resultMapTemp
-    const resultMapTemp = {
-      get: (key) => {
-        if (key === constants.CLIENT_ID) return 'yourClientId';
-        if (key === constants.CLIENT_SECRET) return 'yourClientSecret';
-        if (key === constants.INTROSPECT_TOKEN_URL) return 'yourIntrospectTokenUrl';
-        return undefined;
-      }
-    };
-    const accessToken = 'validAccessToken';
-    const errorMessage = 'An error occurred';
+  it('should throw an error when the response does not contain the expected data structure', async () => {
+    // Define inputs
+    const path = 'yourPostEndpoint';
+    const formData = { key: 'value' };
+    const headers = { 'Authorization': 'Bearer yourAccessToken' };
+    const invalidResponse = { invalidKey: 'invalidValue' };
 
-    const getAuthorizationHeaderStub = sinon.stub().rejects(new Error(errorMessage));
-    const postForMappingStub = sinon.stub();
-
-    const fakeThis = {
-      getAuthorizationHeader: getAuthorizationHeaderStub,
-      postForMapping: postForMappingStub
-    };
+    // Stub the axios.post method to simulate a successful HTTP POST request with an invalid response
+    const axiosPostStub = sinon.stub().resolves({ data: invalidResponse });
 
     // Call the function and assert that it throws an error
-    await expect(introspectToken.call(fakeThis, resultMapTemp, accessToken)).to.be.rejectedWith(Error, errorMessage);
+    await expect(postMapping(path, formData, headers, axiosPostStub)).to.be.rejectedWith(Error, 'Invalid response data structure');
 
     // Assertions
-    expect(getAuthorizationHeaderStub.calledOnceWith('yourClientId', 'yourClientSecret')).to.be.true;
-    expect(postForMappingStub.notCalled).to.be.true; // Ensure that postForMapping is not called
+    expect(axiosPostStub.calledOnceWith(path, formData, { headers })).to.be.true;
   });
 });
-
