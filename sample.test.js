@@ -1,80 +1,60 @@
 const { expect } = require('chai');
 const sinon = require('sinon');
-const chaiAsPromised = require('chai-as-promised');
-chai.use(chaiAsPromised);
 
 // Import the function to be tested
-const { tokenAuthentication } = require('./tokenAuthentication'); // Update the path accordingly
+const { introspectToken } = require('./yourFile'); // Update the path accordingly
 
-describe('tokenAuthentication', () => {
-  it('should call next() when token is valid', async () => {
-    const req = { get: sinon.stub().returns('Bearer validToken') };
-    const res = { status: sinon.stub().returnsThis(), json: sinon.stub() };
-    const next = sinon.stub();
-
-    // Stub the tokenVerification and tokendecode functions
-    sinon.stub(tokenAuthentication.prototype, 'tokenVerification').returns(true);
-    sinon.stub(tokenAuthentication.prototype, 'tokendecode').resolves({});
+describe('introspectToken', () => {
+  it('should return the result when called with valid inputs', async () => {
+    // Stub the required methods and values
+    const resultMapTemp = new Map([
+      [constants.CLIENT_ID, 'yourClientId'],
+      [constants.CLIENT_SECRET, 'yourClientSecret'],
+      [constants.INTROSPECT_TOKEN_URL, 'yourIntrospectTokenUrl']
+    ]);
+    const accessToken = 'validAccessToken';
+    const expectedResult = 'expectedResult';
+    
+    const getAuthorizationHeaderStub = sinon.stub().resolves('validAuthorizationHeader');
+    const postForMappingStub = sinon.stub().resolves(expectedResult);
+    
+    const fakeThis = {
+      getAuthorizationHeader: getAuthorizationHeaderStub,
+      postForMapping: postForMappingStub
+    };
 
     // Call the function
-    await tokenAuthentication(req, res, next);
+    const result = await introspectToken.call(fakeThis, resultMapTemp, accessToken);
 
     // Assertions
-    expect(next.calledOnce).to.be.true;
-    expect(res.status.called).to.be.false;
-
-    // Restore the stubbed functions
-    sinon.restore();
+    expect(getAuthorizationHeaderStub.calledOnceWith('yourClientId', 'yourClientSecret')).to.be.true;
+    expect(postForMappingStub.calledOnceWith('yourIntrospectTokenUrl', sinon.match.any, { 'Authorization': 'validAuthorizationHeader' })).to.be.true;
+    expect(result).to.equal(expectedResult);
   });
 
-  it('should return 401 when token is missing', async () => {
-    const req = { get: sinon.stub().returns('') };
-    const res = { status: sinon.stub().returnsThis(), json: sinon.stub() };
-    const next = sinon.stub();
+  it('should throw an error when an error occurs', async () => {
+    // Stub the required methods to throw an error
+    const resultMapTemp = new Map([
+      [constants.CLIENT_ID, 'yourClientId'],
+      [constants.CLIENT_SECRET, 'yourClientSecret'],
+      [constants.INTROSPECT_TOKEN_URL, 'yourIntrospectTokenUrl']
+    ]);
+    const accessToken = 'validAccessToken';
+    const errorMessage = 'An error occurred';
 
-    // Call the function
-    await tokenAuthentication(req, res, next);
+    const getAuthorizationHeaderStub = sinon.stub().rejects(new Error(errorMessage));
+    const postForMappingStub = sinon.stub();
 
-    // Assertions
-    expect(res.status.calledOnceWith(401)).to.be.true;
-    expect(res.json.calledOnceWith({ message: 'Unauthorized: Missing token' })).to.be.true;
-  });
+    const fakeThis = {
+      getAuthorizationHeader: getAuthorizationHeaderStub,
+      postForMapping: postForMappingStub
+    };
 
-  it('should return 401 when token is invalid', async () => {
-    const req = { get: sinon.stub().returns('Bearer invalidToken') };
-    const res = { status: sinon.stub().returnsThis(), json: sinon.stub() };
-    const next = sinon.stub();
-
-    // Stub the tokenVerification function
-    sinon.stub(tokenAuthentication.prototype, 'tokenVerification').returns(false);
-
-    // Call the function
-    await tokenAuthentication(req, res, next);
+    // Call the function and assert that it throws an error
+    await expect(introspectToken.call(fakeThis, resultMapTemp, accessToken)).to.be.rejectedWith(Error, errorMessage);
 
     // Assertions
-    expect(res.status.calledOnceWith(401)).to.be.true;
-    expect(res.json.calledOnceWith({ message: 'Unauthorized: Invalid token' })).to.be.true;
-
-    // Restore the stubbed function
-    sinon.restore();
-  });
-
-  it('should return 401 when token decoding fails', async () => {
-    const req = { get: sinon.stub().returns('Bearer validToken') };
-    const res = { status: sinon.stub().returnsThis(), json: sinon.stub() };
-    const next = sinon.stub();
-
-    // Stub the tokendecode function to simulate failure
-    sinon.stub(tokenAuthentication.prototype, 'tokendecode').rejects(new Error('Invalid Signature'));
-
-    // Call the function
-    await tokenAuthentication(req, res, next);
-
-    // Assertions
-    expect(res.status.calledOnceWith(401)).to.be.true;
-    expect(res.json.calledOnceWith({ message: 'Unauthorized: Invalid Signature' })).to.be.true;
-
-    // Restore the stubbed function
-    sinon.restore();
+    expect(getAuthorizationHeaderStub.calledOnceWith('yourClientId', 'yourClientSecret')).to.be.true;
+    expect(postForMappingStub.notCalled).to.be.true; // Ensure that postForMapping is not called
   });
 });
