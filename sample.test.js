@@ -58,3 +58,66 @@ describe('introspectToken', () => {
     expect(postForMappingStub.notCalled).to.be.true; // Ensure that postForMapping is not called
   });
 });
+
+
+describe('introspectToken', () => {
+  it('should return the result when called with valid inputs', async () => {
+    // Define a valid resultMapTemp
+    const resultMapTemp = {
+      get: (key) => {
+        if (key === constants.CLIENT_ID) return 'yourClientId';
+        if (key === constants.CLIENT_SECRET) return 'yourClientSecret';
+        if (key === constants.INTROSPECT_TOKEN_URL) return 'yourIntrospectTokenUrl';
+        return undefined;
+      }
+    };
+    const accessToken = 'validAccessToken';
+    const expectedResult = 'expectedResult';
+    
+    const getAuthorizationHeaderStub = sinon.stub().resolves('validAuthorizationHeader');
+    const postForMappingStub = sinon.stub().resolves(expectedResult);
+    
+    const fakeThis = {
+      getAuthorizationHeader: getAuthorizationHeaderStub,
+      postForMapping: postForMappingStub
+    };
+
+    // Call the function
+    const result = await introspectToken.call(fakeThis, resultMapTemp, accessToken);
+
+    // Assertions
+    expect(getAuthorizationHeaderStub.calledOnceWith('yourClientId', 'yourClientSecret')).to.be.true;
+    expect(postForMappingStub.calledOnceWith('yourIntrospectTokenUrl', sinon.match.any, { 'Authorization': 'validAuthorizationHeader' })).to.be.true;
+    expect(result).to.equal(expectedResult);
+  });
+
+  it('should throw an error when an error occurs', async () => {
+    // Define a valid resultMapTemp
+    const resultMapTemp = {
+      get: (key) => {
+        if (key === constants.CLIENT_ID) return 'yourClientId';
+        if (key === constants.CLIENT_SECRET) return 'yourClientSecret';
+        if (key === constants.INTROSPECT_TOKEN_URL) return 'yourIntrospectTokenUrl';
+        return undefined;
+      }
+    };
+    const accessToken = 'validAccessToken';
+    const errorMessage = 'An error occurred';
+
+    const getAuthorizationHeaderStub = sinon.stub().rejects(new Error(errorMessage));
+    const postForMappingStub = sinon.stub();
+
+    const fakeThis = {
+      getAuthorizationHeader: getAuthorizationHeaderStub,
+      postForMapping: postForMappingStub
+    };
+
+    // Call the function and assert that it throws an error
+    await expect(introspectToken.call(fakeThis, resultMapTemp, accessToken)).to.be.rejectedWith(Error, errorMessage);
+
+    // Assertions
+    expect(getAuthorizationHeaderStub.calledOnceWith('yourClientId', 'yourClientSecret')).to.be.true;
+    expect(postForMappingStub.notCalled).to.be.true; // Ensure that postForMapping is not called
+  });
+});
+
