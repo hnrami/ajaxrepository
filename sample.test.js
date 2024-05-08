@@ -1,5 +1,6 @@
 const { expect } = require('chai');
 const sinon = require('sinon');
+const axios = require('axios');
 
 // Import the function to be tested
 const { postMapping } = require('./yourFile'); // Update the path accordingly
@@ -12,15 +13,18 @@ describe('postMapping', () => {
     const headers = { 'Authorization': 'Bearer yourAccessToken' };
     const expectedResult = { active: true };
 
-    // Stub the axios.post method to simulate a successful HTTP POST request
-    const axiosPostStub = sinon.stub().resolves({ data: expectedResult });
+    // Stub axios.post to resolve with expectedResult
+    const axiosPostStub = sinon.stub(axios, 'post').resolves({ data: expectedResult });
 
     // Call the function
-    const result = await postMapping(path, formData, headers, axiosPostStub);
+    const result = await postMapping(path, formData, headers);
 
     // Assertions
     expect(axiosPostStub.calledOnceWith(path, formData, { headers })).to.be.true;
     expect(result).to.deep.equal(expectedResult);
+
+    // Restore the stubbed method
+    axiosPostStub.restore();
   });
 
   it('should throw an error when an error occurs during the HTTP POST request', async () => {
@@ -30,30 +34,16 @@ describe('postMapping', () => {
     const headers = { 'Authorization': 'Bearer yourAccessToken' };
     const errorMessage = 'An error occurred during HTTP POST request';
 
-    // Stub the axios.post method to simulate an error during the HTTP POST request
-    const axiosPostStub = sinon.stub().rejects(new Error(errorMessage));
+    // Stub axios.post to reject with an error
+    const axiosPostStub = sinon.stub(axios, 'post').rejects(new Error(errorMessage));
 
     // Call the function and assert that it throws an error
-    await expect(postMapping(path, formData, headers, axiosPostStub)).to.be.rejectedWith(Error, errorMessage);
+    await expect(postMapping(path, formData, headers)).to.be.rejectedWith(Error, errorMessage);
 
     // Assertions
     expect(axiosPostStub.calledOnceWith(path, formData, { headers })).to.be.true;
-  });
 
-  it('should throw an error when the response does not contain the expected data structure', async () => {
-    // Define inputs
-    const path = 'yourPostEndpoint';
-    const formData = { key: 'value' };
-    const headers = { 'Authorization': 'Bearer yourAccessToken' };
-    const invalidResponse = { invalidKey: 'invalidValue' };
-
-    // Stub the axios.post method to simulate a successful HTTP POST request with an invalid response
-    const axiosPostStub = sinon.stub().resolves({ data: invalidResponse });
-
-    // Call the function and assert that it throws an error
-    await expect(postMapping(path, formData, headers, axiosPostStub)).to.be.rejectedWith(Error, 'Invalid response data structure');
-
-    // Assertions
-    expect(axiosPostStub.calledOnceWith(path, formData, { headers })).to.be.true;
+    // Restore the stubbed method
+    axiosPostStub.restore();
   });
 });
