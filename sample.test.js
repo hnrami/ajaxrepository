@@ -1,49 +1,46 @@
 const { expect } = require('chai');
 const sinon = require('sinon');
-const axios = require('axios');
 
 // Import the function to be tested
-const { postMapping } = require('./yourFile'); // Update the path accordingly
+const { callIntrospections } = require('./yourFile'); // Update the path accordingly
 
-describe('postMapping', () => {
-  it('should return the result when called with valid inputs and successful HTTP POST request', async () => {
+describe('callIntrospections', () => {
+  it('should return the result when called with valid inputs and successful API call', async () => {
     // Define inputs
-    const path = 'yourPostEndpoint';
-    const formData = { key: 'value' };
-    const headers = { 'Authorization': 'Bearer yourAccessToken' };
+    const resultMapTemp = { key: 'value' };
+    const token = 'validToken';
     const expectedResult = { active: true };
 
-    // Stub axios.post to resolve with expectedResult
-    const axiosPostStub = sinon.stub(axios, 'post').resolves({ data: expectedResult });
+    // Stub interospecttoken to resolve with expectedResult
+    const interospectTokenStub = sinon.stub().resolves(expectedResult);
+
+    // Create a fake context with the stubbed interospecttoken
+    const fakeThis = { interospecttoken: interospectTokenStub };
 
     // Call the function
-    const result = await postMapping(path, formData, headers);
+    const result = await callIntrospections.call(fakeThis, resultMapTemp, token);
 
     // Assertions
-    expect(axiosPostStub.calledOnceWith(path, formData, { headers })).to.be.true;
+    expect(interospectTokenStub.calledOnceWith(resultMapTemp, token)).to.be.true;
     expect(result).to.deep.equal(expectedResult);
-
-    // Restore the stubbed method
-    axiosPostStub.restore();
   });
 
-  it('should throw an error when an error occurs during the HTTP POST request', async () => {
+  it('should throw an error when an error occurs during the API call', async () => {
     // Define inputs
-    const path = 'yourPostEndpoint';
-    const formData = { key: 'value' };
-    const headers = { 'Authorization': 'Bearer yourAccessToken' };
-    const errorMessage = 'An error occurred during HTTP POST request';
+    const resultMapTemp = { key: 'value' };
+    const token = 'validToken';
+    const errorMessage = 'An error occurred during API call';
 
-    // Stub axios.post to reject with an error
-    const axiosPostStub = sinon.stub(axios, 'post').rejects(new Error(errorMessage));
+    // Stub interospecttoken to reject with an error
+    const interospectTokenStub = sinon.stub().rejects(new Error(errorMessage));
+
+    // Create a fake context with the stubbed interospecttoken
+    const fakeThis = { interospecttoken: interospectTokenStub };
 
     // Call the function and assert that it throws an error
-    await expect(postMapping(path, formData, headers)).to.be.rejectedWith(Error, errorMessage);
+    await expect(callIntrospections.call(fakeThis, resultMapTemp, token)).to.be.rejectedWith(Error, errorMessage);
 
     // Assertions
-    expect(axiosPostStub.calledOnceWith(path, formData, { headers })).to.be.true;
-
-    // Restore the stubbed method
-    axiosPostStub.restore();
+    expect(interospectTokenStub.calledOnceWith(resultMapTemp, token)).to.be.true;
   });
 });
