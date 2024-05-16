@@ -5,7 +5,6 @@ import org.apache.commons.codec.binary.Base64;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -31,11 +30,11 @@ public class Authentication {
             }
 
             // Authenticate
-            URL url = new URL(authnEndpoint);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("POST");
-            connection.setRequestProperty("Content-Type", "application/json");
-            connection.setDoOutput(true);
+            URL authUrl = new URL(authnEndpoint);
+            HttpURLConnection authConnection = (HttpURLConnection) authUrl.openConnection();
+            authConnection.setRequestMethod("POST");
+            authConnection.setRequestProperty("Content-Type", "application/json");
+            authConnection.setDoOutput(true);
 
             Map<String, Object> authBody = new HashMap<>();
             authBody.put("username", System.getenv("user"));
@@ -46,52 +45,51 @@ public class Authentication {
             }});
             authBody.put("context", new HashMap<String, Object>());
 
-            OutputStream outputStream = connection.getOutputStream();
-            objectMapper.writeValue(outputStream, authBody);
-            outputStream.flush();
+            objectMapper.writeValue(authConnection.getOutputStream(), authBody);
 
-            int responseCode = connection.getResponseCode();
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                String responseString = reader.readLine();
-                JsonNode sessionTokenNode = objectMapper.readTree(responseString).get("sessionToken");
-                String sessionToken = sessionTokenNode != null ? sessionTokenNode.asText() : null;
-                jsessionId = connection.getHeaderField("Set-Cookie");
+            BufferedReader authReader = new BufferedReader(new InputStreamReader(authConnection.getInputStream()));
+            String authResponseString = authReader.readLine();
+            String sessionToken = objectMapper.readTree(authResponseString).get("sessionToken").asText();
+            jsessionId = authConnection.getHeaderField("Set-Cookie");
 
-                // Generate state and nonce
-                SecureRandom random = new SecureRandom();
-                byte[] stateBytes = new byte[10];
-                random.nextBytes(stateBytes);
-                byte[] nonceBytes = new byte[10];
-                random.nextBytes(nonceBytes);
+            // Generate state and nonce
+            SecureRandom random = new SecureRandom();
+            byte[] stateBytes = new byte[10];
+            random.nextBytes(stateBytes);
+            byte[] nonceBytes = new byte[10];
+            random.nextBytes(nonceBytes);
 
-                String state = Base64.encodeBase64URLSafeString(stateBytes);
-                String nonce = Base64.encodeBase64URLSafeString(nonceBytes);
+            String state = Base64.encodeBase64URLSafeString(stateBytes);
+            String nonce = Base64.encodeBase64URLSafeString(nonceBytes);
 
-                // Perform GET request to obtain id token
-                url = new URL(authServerAuthorizeEndpoint + "?response_type=id_token");
-                connection = (HttpURLConnection) url.openConnection();
-                connection.setRequestMethod("GET");
-                connection.setRequestProperty("Cookie", jsessionId);
+            // Perform GET request to obtain id token
+            URL authorizeUrl = new URL(authServerAuthorizeEndpoint + "?response_type=id_token");
+            HttpURLConnection authorizeConnection = (HttpURLConnection) authorizeUrl.openConnection();
+            authorizeConnection.setRequestMethod("GET");
+            authorizeConnection.setRequestProperty("Cookie", jsessionId);
 
-                responseCode = connection.getResponseCode();
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                    responseString = reader.readLine();
-                    String idToken = responseString.split("#id_token=")[1].split("&")[0];
-                    byte[] idTokenBytes = Base64.decodeBase64(idToken);
-                    String decodedToken = new String(idTokenBytes, StandardCharsets.UTF_8);
+            BufferedReader authorizeReader = new BufferedReader(new InputStreamReader(authorizeConnection.getInputStream()));
+            String authorizeResponseString = authorizeReader.readLine();
 
-                    Map<String, String> result = new HashMap<>();
-                    result.put("token", idToken);
-                    result.put("decodedToken", decodedToken);
-                    return result;
-                }
+            String idToken = null;
+            String decodedToken = null;
+
+            String[] hashValue = authorizeResponseString.split("#id_token=");
+            if (hashValue.length > 1) {
+                idToken = hashValue[1].split("&")[0];
+                byte[] idTokenBytes = Base64.decodeBase64(idToken);
+                decodedToken = new String(idTokenBytes, StandardCharsets.UTF_8);
             }
+
+            Map<String, String> result = new HashMap<>();
+            result.put("token", idToken);
+            result.put("decodedToken", decodedToken);
+
+            return result;
         } catch (IOException e) {
             e.printStackTrace();
+            return null;
         }
-        return null;
     }
 
     public static void main(String[] args) {
