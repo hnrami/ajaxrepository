@@ -68,7 +68,13 @@ public class Authentication {
             authorizeConnection.setRequestMethod("GET");
             authorizeConnection.setRequestProperty("Cookie", jsessionId);
 
-            BufferedReader authorizeReader = new BufferedReader(new InputStreamReader(authorizeConnection.getInputStream()));
+            BufferedReader authorizeReader;
+            try {
+                authorizeReader = new BufferedReader(new InputStreamReader(authorizeConnection.getInputStream()));
+            } catch (IOException e) {
+                authorizeReader = new BufferedReader(new InputStreamReader(authorizeConnection.getErrorStream()));
+            }
+
             String authorizeResponseString = authorizeReader.readLine();
 
             String idToken = null;
