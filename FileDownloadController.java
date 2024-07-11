@@ -39,23 +39,36 @@ public class FileDownloadController {
         StreamingResponseBody responseBody = outputStream -> {
             long downloadedLength = 0;
             long fileSize = s3Client.getObjectMetadata(bucketName, key).getContentLength();
-            try {
-                while (downloadedLength < fileSize) {
-                    long endRange = Math.min(downloadedLength + 5 * 1024 * 1024 - 1, fileSize - 1); // 5MB chunks
-                    GetObjectRequest rangeObjectRequest = new GetObjectRequest(bucketName, key)
-                                                          .withRange(downloadedLength, endRange);
-                    S3Object objectPortion = s3Client.getObject(rangeObjectRequest);
-                    try (InputStream is = objectPortion.getObjectContent()) {
-                        byte[] buffer = new byte[8192];
-                        int bytesRead;
-                        while ((bytesRead = is.read(buffer)) != -1) {
-                            outputStream.write(buffer, 0, bytesRead);
+            byte[] buffer = new byte[8192];
+            int maxRetries = 3;
+            int retryCount = 0;
+
+            while (downloadedLength < fileSize) {
+                boolean success = false;
+                while (!success && retryCount < maxRetries) {
+                    try {
+                        long endRange = Math.min(downloadedLength + 5 * 1024 * 1024 - 1, fileSize - 1); // 5MB chunks
+                        GetObjectRequest rangeObjectRequest = new GetObjectRequest(bucketName, key)
+                                                              .withRange(downloadedLength, endRange);
+                        S3Object objectPortion = s3Client.getObject(rangeObjectRequest);
+                        try (InputStream is = objectPortion.getObjectContent()) {
+                            int bytesRead;
+                            while ((bytesRead = is.read(buffer)) != -1) {
+                                outputStream.write(buffer, 0, bytesRead);
+                                outputStream.flush(); // Ensure the data is sent to the client immediately
+                            }
+                            success = true;
                         }
+                        downloadedLength = endRange + 1;
+                    } catch (IOException e) {
+                        retryCount++;
+                        if (retryCount >= maxRetries) {
+                            throw new IOException("Failed to download file after " + maxRetries + " attempts", e);
+                        }
+                        e.printStackTrace();
                     }
-                    downloadedLength += endRange - downloadedLength + 1;
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
+                retryCount = 0; // Reset retry count for the next chunk
             }
         };
 
